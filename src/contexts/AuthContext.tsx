@@ -204,7 +204,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { error: new Error('This account is registered as staff. Please use the Staff Login page.') };
       }
 
-      // Try customer email pattern first
+      // Try customer email pattern first (new passwordless format)
       const customerEmail = `${mobileNumber}@customer.pennycarbs.app`;
       const customerPassword = `PC_CUSTOMER_${mobileNumber}`;
 
@@ -217,8 +217,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { error: null };
       }
 
-      // Customer pattern failed - account may have been created differently
-      return { error: new Error('Unable to sign in. If you registered as staff, please use Staff Login.') };
+      // Try legacy staff email pattern (for customers who registered via old flow)
+      const staffEmail = `${mobileNumber}@pennycarbs.app`;
+      const { error: staffError } = await supabase.auth.signInWithPassword({
+        email: staffEmail,
+        password: customerPassword,
+      });
+
+      if (!staffError) {
+        return { error: null };
+      }
+
+      // Both patterns failed - user needs to enter password manually or reset
+      return { error: new Error('Unable to sign in automatically. This account may require a password. Please use Staff Login or contact support.') };
     } catch (error) {
       return { error: error as Error };
     }
