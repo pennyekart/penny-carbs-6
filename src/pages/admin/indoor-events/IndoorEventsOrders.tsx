@@ -23,6 +23,16 @@ import {
 
 type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'out_for_delivery' | 'delivered' | 'cancelled';
 
+interface OrderItem {
+  id: string;
+  food_item_id: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+  assigned_cook_id: string | null;
+  food_item?: { id: string; name: string; price: number };
+}
+
 interface IndoorEventOrder {
   id: string;
   order_number: string;
@@ -42,6 +52,7 @@ interface IndoorEventOrder {
   panchayat: { name: string } | null;
   profile: { name: string; mobile_number: string } | null;
   assigned_cooks?: { cook_id: string; cook_status: string }[];
+  order_items?: OrderItem[];
 }
 
 interface Cook {
@@ -68,6 +79,7 @@ const IndoorEventsOrders: React.FC = () => {
   const [selectedOrder, setSelectedOrder] = useState<IndoorEventOrder | null>(null);
   const [cookSelectionOpen, setCookSelectionOpen] = useState(false);
   const [selectedCooks, setSelectedCooks] = useState<string[]>([]);
+  const [dishCookAssignments, setDishCookAssignments] = useState<Map<string, string>>(new Map());
   const queryClient = useQueryClient();
 
   const { data: orders, isLoading, refetch } = useQuery({
@@ -116,10 +128,25 @@ const IndoorEventsOrders: React.FC = () => {
         assignedCooksMap.get(ac.order_id)!.push({ cook_id: ac.cook_id, cook_status: ac.cook_status });
       });
 
+      // Fetch order items with assigned cooks
+      const { data: orderItems } = await supabase
+        .from('order_items')
+        .select('id, order_id, food_item_id, quantity, unit_price, total_price, assigned_cook_id, food_item:food_items(id, name, price)')
+        .in('order_id', orderIds);
+
+      const orderItemsMap = new Map<string, OrderItem[]>();
+      orderItems?.forEach((item: any) => {
+        if (!orderItemsMap.has(item.order_id)) {
+          orderItemsMap.set(item.order_id, []);
+        }
+        orderItemsMap.get(item.order_id)!.push(item);
+      });
+
       return ordersData?.map((order: any) => ({
         ...order,
         profile: profileMap.get(order.customer_id) || null,
         assigned_cooks: assignedCooksMap.get(order.id) || [],
+        order_items: orderItemsMap.get(order.id) || [],
       })) as IndoorEventOrder[];
     },
   });
@@ -162,22 +189,42 @@ const IndoorEventsOrders: React.FC = () => {
 
   const openCookSelection = (order: IndoorEventOrder) => {
     setSelectedOrder(order);
-    // Pre-select already assigned cooks
+    // Pre-populate dish-cook assignments from existing data
+    const assignments = new Map<string, string>();
+    order.order_items?.forEach(item => {
+      if (item.assigned_cook_id) {
+        assignments.set(item.id, item.assigned_cook_id);
+      }
+    });
+    setDishCookAssignments(assignments);
+    // Legacy: keep selectedCooks for order_assigned_cooks table
     setSelectedCooks(order.assigned_cooks?.map(ac => ac.cook_id) || []);
     setCookSelectionOpen(true);
   };
 
   const assignCooksMutation = useMutation({
-    mutationFn: async ({ orderId, cookIds }: { orderId: string; cookIds: string[] }) => {
-      // First remove existing assignments
+    mutationFn: async ({ orderId, dishAssignments }: { orderId: string; dishAssignments: Map<string, string> }) => {
+      // Update each order_item with its assigned cook
+      for (const [itemId, cookId] of dishAssignments) {
+        const { error } = await supabase
+          .from('order_items')
+          .update({ assigned_cook_id: cookId })
+          .eq('id', itemId);
+        if (error) throw error;
+      }
+
+      // Get unique cook IDs for the order_assigned_cooks table
+      const uniqueCookIds = [...new Set(dishAssignments.values())];
+
+      // Remove existing order-level assignments
       await supabase
         .from('order_assigned_cooks')
         .delete()
         .eq('order_id', orderId);
 
       // Insert new assignments
-      if (cookIds.length > 0) {
-        const assignments = cookIds.map(cookId => ({
+      if (uniqueCookIds.length > 0) {
+        const assignments = uniqueCookIds.map(cookId => ({
           order_id: orderId,
           cook_id: cookId,
           cook_status: 'pending',
@@ -199,11 +246,13 @@ const IndoorEventsOrders: React.FC = () => {
       if (orderError) throw orderError;
     },
     onSuccess: () => {
+      const assignedCount = dishCookAssignments.size;
       toast({
         title: 'Cooks Assigned',
-        description: `${selectedCooks.length} cook(s) assigned and order marked as preparing`,
+        description: `Cooks assigned to ${assignedCount} dish(es) and order marked as preparing`,
       });
       setCookSelectionOpen(false);
+      setDishCookAssignments(new Map());
       setSelectedCooks([]);
       setSelectedOrder(null);
       queryClient.invalidateQueries({ queryKey: ['indoor-events-orders'] });
@@ -218,16 +267,29 @@ const IndoorEventsOrders: React.FC = () => {
   });
 
   const handleAssignCooksAndPrepare = () => {
-    if (!selectedOrder || selectedCooks.length === 0) {
+    if (!selectedOrder) return;
+    
+    // Check if at least one dish has a cook assigned
+    if (dishCookAssignments.size === 0) {
       toast({
-        title: 'Select Cooks',
-        description: 'Please select at least one cook',
+        title: 'Assign Cooks',
+        description: 'Please assign at least one cook to a dish',
         variant: 'destructive',
       });
       return;
     }
 
-    assignCooksMutation.mutate({ orderId: selectedOrder.id, cookIds: selectedCooks });
+    assignCooksMutation.mutate({ orderId: selectedOrder.id, dishAssignments: dishCookAssignments });
+  };
+
+  const handleDishCookChange = (itemId: string, cookId: string) => {
+    const newAssignments = new Map(dishCookAssignments);
+    if (cookId === 'none') {
+      newAssignments.delete(itemId);
+    } else {
+      newAssignments.set(itemId, cookId);
+    }
+    setDishCookAssignments(newAssignments);
   };
 
   const toggleCookSelection = (cookId: string) => {
@@ -385,25 +447,37 @@ const IndoorEventsOrders: React.FC = () => {
                   </CardContent>
                 </Card>
 
-                {/* Assigned Cooks */}
-                {selectedOrder.assigned_cooks && selectedOrder.assigned_cooks.length > 0 && (
+                {/* Order Items with Assigned Cooks */}
+                {selectedOrder.order_items && selectedOrder.order_items.length > 0 && (
                   <Card>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-sm flex items-center gap-2">
                         <ChefHat className="h-4 w-4" />
-                        Assigned Cooks ({selectedOrder.assigned_cooks.length})
+                        Dishes & Cook Assignments
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="text-sm">
                       <div className="space-y-2">
-                        {selectedOrder.assigned_cooks.map((ac, idx) => {
-                          const cook = cooks?.find(c => c.id === ac.cook_id);
+                        {selectedOrder.order_items.map((item) => {
+                          const cook = cooks?.find(c => c.id === item.assigned_cook_id);
                           return (
-                            <div key={ac.cook_id} className="flex items-center justify-between p-2 rounded bg-muted">
-                              <span>{cook?.kitchen_name || 'Unknown Cook'}</span>
-                              <Badge variant="outline" className="text-xs capitalize">
-                                {ac.cook_status}
-                              </Badge>
+                            <div key={item.id} className="flex items-center justify-between p-2 rounded bg-muted">
+                              <div className="flex-1">
+                                <p className="font-medium">{item.food_item?.name || 'Unknown'}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Qty: {item.quantity} × ₹{item.unit_price}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                {cook ? (
+                                  <Badge variant="secondary" className="text-xs">
+                                    <ChefHat className="h-3 w-3 mr-1" />
+                                    {cook.kitchen_name}
+                                  </Badge>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">No cook</span>
+                                )}
+                              </div>
                             </div>
                           );
                         })}
@@ -466,45 +540,110 @@ const IndoorEventsOrders: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Cook Selection Dialog */}
+      {/* Cook Selection Dialog - Per Dish Assignment */}
       <Dialog open={cookSelectionOpen} onOpenChange={setCookSelectionOpen}>
-        <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ChefHat className="h-5 w-5" />
-              Select Cooks for Order
+              Assign Cooks to Dishes
             </DialogTitle>
             <DialogDescription>
-              Order #{selectedOrder?.order_number} - Select one or more cooks to assign
+              Order #{selectedOrder?.order_number} - Assign a cook to each dish
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-2 py-4">
-            {cooks?.map((cook) => (
-              <div
-                key={cook.id}
-                className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                  selectedCooks.includes(cook.id)
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border hover:bg-muted'
-                }`}
-                onClick={() => toggleCookSelection(cook.id)}
-              >
-                <Checkbox
-                  checked={selectedCooks.includes(cook.id)}
-                  onCheckedChange={() => toggleCookSelection(cook.id)}
-                />
-                <div className="flex-1">
-                  <p className="font-medium">{cook.kitchen_name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {cook.mobile_number} • {cook.panchayat?.name || 'No panchayat'}
-                  </p>
-                </div>
-                <Badge variant={cook.is_available ? 'default' : 'secondary'}>
-                  {cook.is_available ? 'Online' : 'Offline'}
-                </Badge>
+          <div className="space-y-4 py-4">
+            {/* Show message if no order items */}
+            {(!selectedOrder?.order_items || selectedOrder.order_items.length === 0) ? (
+              <div className="text-center py-6 text-muted-foreground">
+                <ChefHat className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                <p>No dishes in this order</p>
+                <p className="text-xs mt-1">Add dishes to the order before assigning cooks</p>
               </div>
-            ))}
+            ) : (
+              <>
+                {/* Dishes with cook selector */}
+                <div className="space-y-3">
+                  {selectedOrder.order_items.map((item) => {
+                    const assignedCookId = dishCookAssignments.get(item.id) || item.assigned_cook_id || '';
+                    const assignedCook = cooks?.find(c => c.id === assignedCookId);
+                    
+                    return (
+                      <div key={item.id} className="border rounded-lg p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <p className="font-medium text-sm">{item.food_item?.name || 'Unknown Dish'}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Qty: {item.quantity} × ₹{item.unit_price} = ₹{item.total_price}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <Select
+                          value={dishCookAssignments.get(item.id) || 'none'}
+                          onValueChange={(value) => handleDishCookChange(item.id, value)}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select cook for this dish">
+                              {assignedCook ? (
+                                <span className="flex items-center gap-2">
+                                  <ChefHat className="h-3 w-3" />
+                                  {assignedCook.kitchen_name}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground">Select cook...</span>
+                              )}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">
+                              <span className="text-muted-foreground">No cook assigned</span>
+                            </SelectItem>
+                            {cooks?.map((cook) => (
+                              <SelectItem key={cook.id} value={cook.id}>
+                                <div className="flex items-center gap-2">
+                                  <span>{cook.kitchen_name}</span>
+                                  {!cook.is_available && (
+                                    <Badge variant="secondary" className="text-xs">Offline</Badge>
+                                  )}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Summary */}
+                <div className="bg-muted/50 rounded-lg p-3 text-sm">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Dishes with cooks assigned:</span>
+                    <span className="font-medium">
+                      {dishCookAssignments.size} / {selectedOrder.order_items.length}
+                    </span>
+                  </div>
+                  {dishCookAssignments.size > 0 && (
+                    <div className="mt-2 pt-2 border-t border-border">
+                      <p className="text-xs text-muted-foreground mb-1">Assigned cooks:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {[...new Set(dishCookAssignments.values())].map(cookId => {
+                          const cook = cooks?.find(c => c.id === cookId);
+                          return cook ? (
+                            <Badge key={cookId} variant="secondary" className="text-xs">
+                              <ChefHat className="h-3 w-3 mr-1" />
+                              {cook.kitchen_name}
+                            </Badge>
+                          ) : null;
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
 
           <DialogFooter>
@@ -513,10 +652,10 @@ const IndoorEventsOrders: React.FC = () => {
             </Button>
             <Button
               onClick={handleAssignCooksAndPrepare}
-              disabled={selectedCooks.length === 0 || assignCooksMutation.isPending}
+              disabled={dishCookAssignments.size === 0 || assignCooksMutation.isPending}
             >
               {assignCooksMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Assign {selectedCooks.length} Cook(s) & Start Preparing
+              Assign & Start Preparing
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -613,6 +613,7 @@ export type Database = {
       }
       order_items: {
         Row: {
+          assigned_cook_id: string | null
           created_at: string
           food_item_id: string
           id: string
@@ -623,6 +624,7 @@ export type Database = {
           unit_price: number
         }
         Insert: {
+          assigned_cook_id?: string | null
           created_at?: string
           food_item_id: string
           id?: string
@@ -633,6 +635,7 @@ export type Database = {
           unit_price: number
         }
         Update: {
+          assigned_cook_id?: string | null
           created_at?: string
           food_item_id?: string
           id?: string
@@ -643,6 +646,13 @@ export type Database = {
           unit_price?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "order_items_assigned_cook_id_fkey"
+            columns: ["assigned_cook_id"]
+            isOneToOne: false
+            referencedRelation: "cooks"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "order_items_food_item_id_fkey"
             columns: ["food_item_id"]
