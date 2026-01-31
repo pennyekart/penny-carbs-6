@@ -1,30 +1,25 @@
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { 
-  ArrowLeft, 
-  LayoutDashboard, 
-  Users, 
-  UtensilsCrossed, 
-  ShoppingBag, 
-  Truck, 
-  BarChart3,
-  Settings,
-  MapPin,
-  LogOut,
+  CalendarHeart,
   ChefHat,
+  Home,
+  Settings,
+  Users,
+  MapPin,
   Image,
-  FolderOpen
+  BarChart3,
+  LogOut,
+  ArrowLeft
 } from 'lucide-react';
-import AdminNavbar from '@/components/admin/AdminNavbar';
 
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { profile, role, signOut } = useAuth();
 
-  // Check if user has admin access
   const isAdmin = role === 'super_admin' || role === 'admin';
 
   if (!isAdmin) {
@@ -42,149 +37,123 @@ const AdminDashboard: React.FC = () => {
     );
   }
 
-  const menuItems = [
-    { 
-      icon: LayoutDashboard, 
-      label: 'Dashboard', 
-      path: '/admin', 
-      color: 'bg-primary/10 text-primary',
-      description: 'Overview & Statistics'
-    },
-    { 
-      icon: ShoppingBag, 
-      label: 'Orders', 
-      path: '/admin/orders', 
-      color: 'bg-warning/10 text-warning',
-      description: 'Manage all orders'
-    },
-    { 
-      icon: UtensilsCrossed, 
-      label: 'Food Items', 
-      path: '/admin/items', 
-      color: 'bg-success/10 text-success',
-      description: 'Menu management'
-    },
-    { 
-      icon: FolderOpen, 
-      label: 'Categories', 
-      path: '/admin/categories', 
-      color: 'bg-teal-500/10 text-teal-600',
-      description: 'Food categories'
-    },
-    { 
-      icon: Image, 
-      label: 'Banners', 
-      path: '/admin/banners', 
-      color: 'bg-purple-500/10 text-purple-600',
-      description: 'Homepage carousel'
-    },
-    { 
-      icon: Users, 
-      label: 'Users', 
-      path: '/admin/users', 
-      color: 'bg-cloud-kitchen/10 text-cloud-kitchen',
-      description: 'Customers & Staff'
-    },
-    { 
-      icon: ChefHat, 
-      label: 'Cooks', 
-      path: '/admin/cooks', 
-      color: 'bg-amber-500/10 text-amber-600',
-      description: 'Food Partners'
-    },
-    { 
-      icon: Truck, 
-      label: 'Delivery Staff', 
-      path: '/admin/delivery-staff', 
-      color: 'bg-indoor-events/10 text-indoor-events',
-      description: 'Delivery partners'
-    },
-    { 
-      icon: MapPin, 
-      label: 'Locations', 
-      path: '/admin/locations', 
-      color: 'bg-homemade/10 text-homemade',
-      description: 'Panchayats & Wards'
-    },
-    { 
-      icon: BarChart3, 
-      label: 'Reports', 
-      path: '/admin/reports', 
-      color: 'bg-accent/10 text-accent',
-      description: 'Analytics & Reports'
-    },
-  ];
-
-  // Super admin only items
-  const superAdminItems = [
-    { 
-      icon: Settings, 
-      label: 'Admin Management', 
-      path: '/admin/admins', 
-      color: 'bg-destructive/10 text-destructive',
-      description: 'Manage admin users'
-    },
-  ];
-
   const handleLogout = async () => {
     await signOut();
     navigate('/');
   };
 
+  const modules = [
+    {
+      id: 'indoor-events',
+      title: 'Indoor Events Management',
+      description: 'Manage event bookings, planning requests, quotations, cook assignments, and commission tracking',
+      icon: CalendarHeart,
+      path: '/admin/indoor-events',
+      gradient: 'from-indoor-events to-indoor-events/70',
+      features: ['Event Bookings', 'Planning Requests', 'Cook Assignment', 'Commission Tracking']
+    },
+    {
+      id: 'cloud-kitchen',
+      title: 'Cloud Kitchen Management',
+      description: 'Time-slot based menu control, live orders, cook & delivery assignments, and performance reports',
+      icon: ChefHat,
+      path: '/admin/cloud-kitchen',
+      gradient: 'from-cloud-kitchen to-cloud-kitchen/70',
+      features: ['Time-Slot Menus', 'Live Orders', 'Cook Management', 'Sales Reports']
+    },
+    {
+      id: 'home-delivery',
+      title: 'Home Food Delivery Management',
+      description: 'Instant orders, auto ETA, delivery assignments, cash collection, and settlement tracking',
+      icon: Home,
+      path: '/admin/home-delivery',
+      gradient: 'from-homemade to-homemade/70',
+      features: ['Instant Orders', 'Delivery Tracking', 'Cash Settlement', 'Ward Reports']
+    }
+  ];
+
+  const commonUtilities = [
+    { icon: Users, label: 'User Management', path: '/admin/users', description: 'Customers & Staff' },
+    { icon: MapPin, label: 'Locations', path: '/admin/locations', description: 'Panchayats & Wards' },
+    { icon: Image, label: 'Banners', path: '/admin/banners', description: 'Promotions' },
+    { icon: BarChart3, label: 'Reports', path: '/admin/reports', description: 'Analytics' },
+  ];
+
+  const superAdminUtilities = [
+    { icon: Settings, label: 'Admin Management', path: '/admin/admins', description: 'Roles & Permissions' },
+  ];
+
   return (
     <div className="min-h-screen bg-background">
-      <AdminNavbar />
+      {/* Header */}
+      <header className="sticky top-0 z-50 border-b bg-card">
+        <div className="flex h-14 items-center justify-between px-4">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="font-display text-lg font-semibold">Admin Panel</h1>
+          </div>
+          <Button variant="ghost" size="icon" onClick={handleLogout}>
+            <LogOut className="h-5 w-5" />
+          </Button>
+        </div>
+      </header>
 
-      <main className="p-4">
+      <main className="p-4 pb-20">
         {/* Welcome Card */}
         <Card className="mb-6 bg-gradient-to-r from-primary/10 to-primary/5">
           <CardContent className="p-6">
             <h2 className="text-xl font-semibold">Welcome, {profile?.name || 'Admin'}!</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Manage your Penny Carbs operations from here
+              Select a module to manage your Penny Carbs operations
             </p>
           </CardContent>
         </Card>
 
-        {/* Quick Stats */}
-        <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <Card>
-            <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-primary">0</p>
-              <p className="text-xs text-muted-foreground">Today's Orders</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-warning">0</p>
-              <p className="text-xs text-muted-foreground">Pending</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-success">₹0</p>
-              <p className="text-xs text-muted-foreground">Today's Revenue</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-cloud-kitchen">0</p>
-              <p className="text-xs text-muted-foreground">Active Items</p>
-            </CardContent>
-          </Card>
+        {/* Module Cards */}
+        <h3 className="mb-4 text-lg font-semibold">Operational Modules</h3>
+        <div className="grid gap-6 md:grid-cols-3">
+          {modules.map((module) => (
+            <Card 
+              key={module.id}
+              className="cursor-pointer overflow-hidden transition-all hover:shadow-lg hover:scale-[1.02]"
+              onClick={() => navigate(module.path)}
+            >
+              <div className={`bg-gradient-to-br ${module.gradient} p-6 text-white`}>
+                <module.icon className="h-12 w-12 mb-4" />
+                <CardTitle className="text-xl text-white">{module.title}</CardTitle>
+              </div>
+              <CardContent className="p-4">
+                <CardDescription className="text-sm mb-4">
+                  {module.description}
+                </CardDescription>
+                <div className="flex flex-wrap gap-2">
+                  {module.features.map((feature) => (
+                    <span 
+                      key={feature}
+                      className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground"
+                    >
+                      {feature}
+                    </span>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
-        {/* Menu Grid */}
-        <h3 className="mb-4 font-semibold">Management</h3>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {menuItems.map((item) => (
+        {/* Common Utilities */}
+        <h3 className="mb-4 mt-8 text-lg font-semibold">Common Utilities</h3>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {commonUtilities.map((item) => (
             <Card 
               key={item.path}
               className="cursor-pointer transition-all hover:shadow-md"
               onClick={() => navigate(item.path)}
             >
               <CardContent className="flex items-center gap-4 p-4">
-                <div className={`rounded-xl p-3 ${item.color}`}>
+                <div className="rounded-xl bg-primary/10 p-3 text-primary">
                   <item.icon className="h-6 w-6" />
                 </div>
                 <div>
@@ -195,14 +164,14 @@ const AdminDashboard: React.FC = () => {
             </Card>
           ))}
 
-          {role === 'super_admin' && superAdminItems.map((item) => (
+          {role === 'super_admin' && superAdminUtilities.map((item) => (
             <Card 
               key={item.path}
               className="cursor-pointer border-destructive/20 transition-all hover:shadow-md"
               onClick={() => navigate(item.path)}
             >
               <CardContent className="flex items-center gap-4 p-4">
-                <div className={`rounded-xl p-3 ${item.color}`}>
+                <div className="rounded-xl bg-destructive/10 p-3 text-destructive">
                   <item.icon className="h-6 w-6" />
                 </div>
                 <div>

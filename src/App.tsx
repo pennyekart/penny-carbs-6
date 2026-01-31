@@ -43,6 +43,12 @@ import AdminReports from "./pages/admin/AdminReports";
 import AdminBanners from "./pages/admin/AdminBanners";
 import AdminAdmins from "./pages/admin/AdminAdmins";
 
+// Admin Modules
+import IndoorEventsModule from "./pages/admin/indoor-events/IndoorEventsModule";
+import CloudKitchenModule from "./pages/admin/cloud-kitchen/CloudKitchenModule";
+import HomeDeliveryModule from "./pages/admin/home-delivery/HomeDeliveryModule";
+import AdminUsers from "./pages/admin/users/AdminUsers";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -78,8 +84,16 @@ const App = () => (
                 <Route path="/delivery/apply" element={<DeliveryApply />} />
                 <Route path="/delivery/dashboard" element={<DeliveryDashboard />} />
                 
-                {/* Admin Routes */}
+                {/* Admin Routes - Main Dashboard */}
                 <Route path="/admin" element={<AdminDashboard />} />
+                
+                {/* Admin Module Routes */}
+                <Route path="/admin/indoor-events/*" element={<IndoorEventsModule />} />
+                <Route path="/admin/cloud-kitchen/*" element={<CloudKitchenModule />} />
+                <Route path="/admin/home-delivery/*" element={<HomeDeliveryModule />} />
+                
+                {/* Admin Common Utilities */}
+                <Route path="/admin/users" element={<AdminUsers />} />
                 <Route path="/admin/orders" element={<AdminOrders />} />
                 <Route path="/admin/items" element={<AdminItems />} />
                 <Route path="/admin/categories" element={<AdminCategories />} />
