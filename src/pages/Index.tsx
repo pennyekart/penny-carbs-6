@@ -1,5 +1,6 @@
 import React from 'react';
 import AppHeader from '@/components/customer/AppHeader';
+import OperationalModules from '@/components/customer/OperationalModules';
 import BannerCarousel from '@/components/customer/BannerCarousel';
 import SpecialOffers from '@/components/customer/SpecialOffers';
 import FeaturedItems from '@/components/customer/FeaturedItems';
@@ -16,6 +17,7 @@ const Index: React.FC = () => {
   return (
     <div className="min-h-screen pb-20 bg-[#fd5d08]">
       <AppHeader onSearch={handleSearch} />
+      <OperationalModules />
       
       <main>
         {/* Banner Carousel */}
