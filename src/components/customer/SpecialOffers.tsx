@@ -64,7 +64,7 @@ const SpecialOffers: React.FC = () => {
           <div
             key={offer.id}
             onClick={() => handleOfferClick(offer)}
-            className="flex-shrink-0 w-24 h-20 rounded-xl cursor-pointer overflow-hidden shadow-sm hover:shadow-md transition-shadow relative"
+            className="flex-shrink-0 w-24 h-20 rounded-xl cursor-pointer overflow-hidden shadow-sm hover:shadow-lg hover:scale-105 hover:-translate-y-1 transition-all duration-200 relative"
             style={{ backgroundColor: offer.background_color || '#16a34a' }}
           >
             {offer.image_url ? (

@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocation } from '@/contexts/LocationContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -24,7 +26,7 @@ import {
 } from '@/components/ui/dialog';
 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { MapPin, Search, User, ChevronDown, LogOut, ShoppingBag, Settings, Truck, Phone, Loader2 } from 'lucide-react';
+import { MapPin, Search, User, ChevronDown, LogOut, ShoppingBag, Settings, Truck, Phone, Loader2, Wallet } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import logo from '@/assets/logo.png';
 
@@ -51,6 +53,22 @@ const AppHeader: React.FC<AppHeaderProps> = ({ onSearch }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showNotRegistered, setShowNotRegistered] = useState(false);
   const [attemptedMobile, setAttemptedMobile] = useState('');
+
+  // Fetch wallet balance
+  const { data: wallet } = useQuery({
+    queryKey: ['customer-wallet', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from('customer_wallets')
+        .select('balance')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
 
   const mobileForm = useForm<MobileFormData>({
     resolver: zodResolver(mobileSchema),
@@ -166,6 +184,19 @@ const AppHeader: React.FC<AppHeaderProps> = ({ onSearch }) => {
               />
             </div>
           </form>
+
+          {/* Wallet Display */}
+          {user && (
+            <button
+              onClick={() => navigate('/profile')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
+            >
+              <Wallet className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium text-primary">
+                ₹{wallet?.balance?.toFixed(0) || '0'}
+              </span>
+            </button>
+          )}
 
           {/* User Menu */}
           {user ? (
