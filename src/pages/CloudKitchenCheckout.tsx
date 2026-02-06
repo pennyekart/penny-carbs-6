@@ -143,6 +143,18 @@ const CloudKitchenCheckout: React.FC = () => {
       // Generate order number
       const orderNumber = `CK${Date.now()}`;
 
+      // Find available cooks for cloud kitchen in this panchayat
+      const { data: availableCooks } = await supabase
+        .from('cooks')
+        .select('id')
+        .eq('is_active', true)
+        .eq('is_available', true)
+        .eq('panchayat_id', selectedPanchayat!.id)
+        .contains('allowed_order_types', ['cloud_kitchen'])
+        .limit(1);
+
+      const assignedCookId = availableCooks?.[0]?.id || null;
+
       // Create the order with cloud_kitchen_slot_id and proper status
       const { data: order, error: orderError } = await supabase
         .from('orders')
@@ -159,6 +171,9 @@ const CloudKitchenCheckout: React.FC = () => {
           status: 'confirmed', // Auto-confirm cloud kitchen orders
           cook_status: 'pending', // Waiting for cook to prepare
           delivery_status: 'pending', // Waiting for delivery assignment
+          cook_assignment_status: assignedCookId ? 'pending' : 'pending',
+          assigned_cook_id: assignedCookId,
+          cook_assigned_at: assignedCookId ? new Date().toISOString() : null,
         }])
         .select()
         .single();
@@ -172,6 +187,7 @@ const CloudKitchenCheckout: React.FC = () => {
         quantity: cartItem.quantity * (cartItem.item.set_size || 1), // Total individual items
         unit_price: cartItem.item.price,
         total_price: cartItem.item.price * cartItem.quantity * (cartItem.item.set_size || 1),
+        assigned_cook_id: assignedCookId,
       }));
 
       const { error: itemsError } = await supabase
@@ -179,6 +195,22 @@ const CloudKitchenCheckout: React.FC = () => {
         .insert(orderItems);
 
       if (itemsError) throw itemsError;
+
+      // Create cook assignment in order_assigned_cooks table (this is what cooks see)
+      if (assignedCookId) {
+        const { error: assignError } = await supabase
+          .from('order_assigned_cooks')
+          .insert([{
+            order_id: order.id,
+            cook_id: assignedCookId,
+            cook_status: 'pending',
+            assigned_at: new Date().toISOString(),
+          }]);
+
+        if (assignError) {
+          console.error('Failed to create cook assignment:', assignError);
+        }
+      }
 
       toast({
         title: 'Order Placed!',
