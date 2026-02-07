@@ -3,18 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import {
-  ClipboardList,
-  FileText,
-  ChefHat,
-  Car,
-  BarChart3,
-  Percent,
-  Wallet,
-  Sparkles,
-} from 'lucide-react';
+import { ClipboardList, FileText, ChefHat, Car, BarChart3, Percent, Wallet, Sparkles } from 'lucide-react';
 import FoodQuantityCalculator from '@/components/admin/FoodQuantityCalculator';
-
 export type IndoorEventsStats = {
   newRequests: number;
   confirmed: number;
@@ -22,89 +12,84 @@ export type IndoorEventsStats = {
   totalRevenue: number;
   total: number;
 };
-
 type Props = {
   stats?: IndoorEventsStats;
 };
-
-const IndoorEventsDashboard: React.FC<Props> = ({ stats }) => {
+const IndoorEventsDashboard: React.FC<Props> = ({
+  stats
+}) => {
   const navigate = useNavigate();
-
-  const menuItems = [
-    {
-      icon: ClipboardList,
-      label: 'All Event Bookings',
-      path: '/admin/indoor-events/orders',
-      description: 'View & manage all event orders',
-      badge: stats?.total,
-    },
-    {
-      icon: FileText,
-      label: 'Planning Requests',
-      path: '/admin/indoor-events/planning',
-      description: 'New requests awaiting planning',
-      badge: stats?.newRequests,
-      badgeVariant: 'destructive' as const,
-    },
-    {
-      icon: ChefHat,
-      label: 'Cook Assignment',
-      path: '/admin/indoor-events/cooks',
-      description: 'Assign cooks by panchayat',
-    },
-    {
-      icon: Car,
-      label: 'Rental Vehicles',
-      path: '/admin/indoor-events/vehicles',
-      description: 'Manage vehicle details for events',
-    },
-    {
-      icon: Percent,
-      label: 'Commission Tracking',
-      path: '/admin/indoor-events/commissions',
-      description: 'Agent & referral commissions',
-    },
-    {
-      icon: Wallet,
-      label: 'Accounts & Payouts',
-      path: '/admin/indoor-events/accounts',
-      description: 'Cook settlements & payouts',
-    },
-    {
-      icon: Sparkles,
-      label: 'Manage Services',
-      path: '/admin/indoor-events/services',
-      description: 'Add-on services for events',
-    },
-    {
-      icon: BarChart3,
-      label: 'Event Reports',
-      path: '/admin/indoor-events/reports',
-      description: 'Panchayat & ward-wise sales',
-    },
-  ];
-
-  const statusFlow = [
-    { label: 'New Request', color: 'bg-yellow-500' },
-    { label: 'Planning Submitted', color: 'bg-blue-500' },
-    { label: 'Admin Reviewed', color: 'bg-purple-500' },
-    { label: 'Quotation Sent', color: 'bg-indigo-500' },
-    { label: 'Advance Paid', color: 'bg-orange-500' },
-    { label: 'Confirmed', color: 'bg-green-500' },
-    { label: 'Completed', color: 'bg-emerald-600' },
-  ];
-
-  return (
-    <div className="min-h-screen bg-background">
+  const menuItems = [{
+    icon: ClipboardList,
+    label: 'All Event Bookings',
+    path: '/admin/indoor-events/orders',
+    description: 'View & manage all event orders',
+    badge: stats?.total
+  }, {
+    icon: FileText,
+    label: 'Planning Requests',
+    path: '/admin/indoor-events/planning',
+    description: 'New requests awaiting planning',
+    badge: stats?.newRequests,
+    badgeVariant: 'destructive' as const
+  }, {
+    icon: ChefHat,
+    label: 'Cook Assignment',
+    path: '/admin/indoor-events/cooks',
+    description: 'Assign cooks by panchayat'
+  }, {
+    icon: Car,
+    label: 'Rental Vehicles',
+    path: '/admin/indoor-events/vehicles',
+    description: 'Manage vehicle details for events'
+  }, {
+    icon: Percent,
+    label: 'Commission Tracking',
+    path: '/admin/indoor-events/commissions',
+    description: 'Agent & referral commissions'
+  }, {
+    icon: Wallet,
+    label: 'Accounts & Payouts',
+    path: '/admin/indoor-events/accounts',
+    description: 'Cook settlements & payouts'
+  }, {
+    icon: Sparkles,
+    label: 'Manage Services',
+    path: '/admin/indoor-events/services',
+    description: 'Add-on services for events'
+  }, {
+    icon: BarChart3,
+    label: 'Event Reports',
+    path: '/admin/indoor-events/reports',
+    description: 'Panchayat & ward-wise sales'
+  }];
+  const statusFlow = [{
+    label: 'New Request',
+    color: 'bg-yellow-500'
+  }, {
+    label: 'Planning Submitted',
+    color: 'bg-blue-500'
+  }, {
+    label: 'Admin Reviewed',
+    color: 'bg-purple-500'
+  }, {
+    label: 'Quotation Sent',
+    color: 'bg-indigo-500'
+  }, {
+    label: 'Advance Paid',
+    color: 'bg-orange-500'
+  }, {
+    label: 'Confirmed',
+    color: 'bg-green-500'
+  }, {
+    label: 'Completed',
+    color: 'bg-emerald-600'
+  }];
+  return <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 border-b bg-indoor-events text-white">
         <div className="flex h-14 items-center justify-between px-4">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate('/admin')}
-              className="text-white hover:bg-white/20"
-            >
+          <div className="flex items-center gap-3 bg-purple-600">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/admin')} className="text-white hover:bg-white/20">
               {/* keep icon inline to avoid extra imports */}
               <span aria-hidden className="text-lg leading-none">
                 ←
@@ -112,10 +97,7 @@ const IndoorEventsDashboard: React.FC<Props> = ({ stats }) => {
             </Button>
             <span className="text-lg font-semibold">Indoor Events</span>
           </div>
-          <FoodQuantityCalculator 
-            serviceType="indoor_events" 
-            triggerClassName="text-white border-white/30 hover:bg-white/20 hover:text-white"
-          />
+          <FoodQuantityCalculator serviceType="indoor_events" triggerClassName="text-white border-white/30 hover:bg-white/20 hover:text-white" />
         </div>
       </header>
 
@@ -155,26 +137,17 @@ const IndoorEventsDashboard: React.FC<Props> = ({ stats }) => {
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
-              {statusFlow.map((status, index) => (
-                <div key={status.label} className="flex items-center gap-1">
+              {statusFlow.map((status, index) => <div key={status.label} className="flex items-center gap-1">
                   <span className={`h-3 w-3 rounded-full ${status.color}`} />
                   <span className="text-xs">{status.label}</span>
-                  {index < statusFlow.length - 1 && (
-                    <span className="text-muted-foreground">→</span>
-                  )}
-                </div>
-              ))}
+                  {index < statusFlow.length - 1 && <span className="text-muted-foreground">→</span>}
+                </div>)}
             </div>
           </CardContent>
         </Card>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {menuItems.map((item) => (
-            <Card
-              key={item.path}
-              className="cursor-pointer transition-all hover:shadow-md hover:border-indoor-events/50"
-              onClick={() => navigate(item.path)}
-            >
+          {menuItems.map(item => <Card key={item.path} className="cursor-pointer transition-all hover:shadow-md hover:border-indoor-events/50" onClick={() => navigate(item.path)}>
               <CardContent className="flex items-center gap-4 p-4">
                 <div className="rounded-xl bg-indoor-events/10 p-3 text-indoor-events">
                   <item.icon className="h-6 w-6" />
@@ -182,21 +155,16 @@ const IndoorEventsDashboard: React.FC<Props> = ({ stats }) => {
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <h4 className="font-medium">{item.label}</h4>
-                    {item.badge !== undefined && (item.badge ?? 0) > 0 && (
-                      <Badge variant={item.badgeVariant || 'secondary'} className="text-xs">
+                    {item.badge !== undefined && (item.badge ?? 0) > 0 && <Badge variant={item.badgeVariant || 'secondary'} className="text-xs">
                         {item.badge}
-                      </Badge>
-                    )}
+                      </Badge>}
                   </div>
                   <p className="text-sm text-muted-foreground">{item.description}</p>
                 </div>
               </CardContent>
-            </Card>
-          ))}
+            </Card>)}
         </div>
       </main>
-    </div>
-  );
+    </div>;
 };
-
 export default IndoorEventsDashboard;
