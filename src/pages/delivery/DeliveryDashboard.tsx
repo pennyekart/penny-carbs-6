@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { 
   useDeliveryProfile, 
   useDeliveryWallet, 
@@ -30,7 +31,8 @@ import {
   Clock,
   CheckCircle2,
   Navigation,
-  Bell
+  Bell,
+  RefreshCw
 } from 'lucide-react';
 import type { DeliveryStatus } from '@/types/delivery';
 
@@ -43,7 +45,9 @@ const statusConfig: Record<DeliveryStatus, { label: string; color: string }> = {
 
 const DeliveryDashboard: React.FC = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { signOut } = useAuth();
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { data: profile, isLoading: profileLoading } = useDeliveryProfile();
   const { data: wallet } = useDeliveryWallet();
   const { data: myOrders, isLoading: ordersLoading } = useDeliveryOrders();
@@ -99,6 +103,17 @@ const DeliveryDashboard: React.FC = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['delivery-orders'] }),
+      queryClient.invalidateQueries({ queryKey: ['available-delivery-orders'] }),
+      queryClient.invalidateQueries({ queryKey: ['delivery-profile'] }),
+      queryClient.invalidateQueries({ queryKey: ['delivery-wallet'] }),
+    ]);
+    setTimeout(() => setIsRefreshing(false), 1000);
   };
 
   const handleAvailabilityChange = async (checked: boolean) => {
@@ -187,9 +202,14 @@ const DeliveryDashboard: React.FC = () => {
               </Badge>
             )}
           </div>
-          <Button variant="ghost" size="icon" onClick={handleLogout}>
-            <LogOut className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" onClick={handleRefresh} disabled={isRefreshing}>
+              <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={handleLogout}>
+              <LogOut className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
       </header>
 
